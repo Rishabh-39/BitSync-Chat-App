@@ -17,8 +17,19 @@ const databaseURL = process.env.DATABASE_URL;
 
 app.use(
   cors({
-    origin: process.env.ORIGIN,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps, curl)
+      if (!origin) return callback(null, true);
+
+      if (
+        origin.includes("vercel.app") ||
+        origin === process.env.ORIGIN
+      ) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("CORS not allowed"));
+      }
+    },
     credentials: true,
   })
 );
@@ -38,17 +49,7 @@ app.use("/api/channel", channelRoutes);
 mongoose
   .connect(process.env.DATABASE_URL)
   .then(() => {
-<<<<<<< HEAD
-    console.log("DB Connection Successful");
-
-    const server = app.listen(port, () => {
-      console.log(`Server running at http://localhost:${port}`);
-    });
-
-    setupSocket(server);
-=======
     console.log("DB Connected");
->>>>>>> 8f8edf6 (frontend connected to backend)
   })
   .catch((err) => {
     console.log("DB Error:", err.message);
