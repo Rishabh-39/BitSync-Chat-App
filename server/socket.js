@@ -2,21 +2,18 @@ import { Server as SocketIOServer } from "socket.io";
 import Message from "./model/MessagesModel.js";
 import Channel from "./model/ChannelModel.js";
 
-const io = new SocketIOServer(server, {
-  cors: {
-    origin: [
-      "https://bit-sync-chat-app.vercel.app",
-      "https://bit-sync-chat-app-git-main-rishabh-39s-projects.vercel.app"
-    ],
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
+const setupSocket = (server) => {
+  const io = new SocketIOServer(server, {
+    cors: {
+      origin: true,
+      credentials: true,
+    },
+  });
 
   const userSocketMap = new Map();
 
   const addChannelNotify = async (channel) => {
-    if (channel?.members) {
+    if (channel && channel.members) {
       channel.members.forEach((member) => {
         const socketId = userSocketMap.get(member.toString());
         if (socketId) {
@@ -27,8 +24,7 @@ const io = new SocketIOServer(server, {
   };
 
   const sendMessage = async (message) => {
-    const recipientSocketId = userSocketMap.get(message.recipient);
-    const senderSocketId = userSocketMap.get(message.sender);
+    const { sender, recipient } = message;
 
     const createdMessage = await Message.create(message);
 
@@ -36,12 +32,15 @@ const io = new SocketIOServer(server, {
       .populate("sender", "id email firstName lastName image color")
       .populate("recipient", "id email firstName lastName image color");
 
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit("receiveMessage", messageData);
+    const senderSocket = userSocketMap.get(sender);
+    const recipientSocket = userSocketMap.get(recipient);
+
+    if (recipientSocket) {
+      io.to(recipientSocket).emit("receiveMessage", messageData);
     }
 
-    if (senderSocketId) {
-      io.to(senderSocketId).emit("receiveMessage", messageData);
+    if (senderSocket) {
+      io.to(senderSocket).emit("receiveMessage", messageData);
     }
   };
 
@@ -50,11 +49,10 @@ const io = new SocketIOServer(server, {
 
     const createdMessage = await Message.create({
       sender,
-      recipient: null,
       content,
       messageType,
-      timestamp: new Date(),
       fileUrl,
+      timestamp: new Date(),
     });
 
     const messageData = await Message.findById(createdMessage._id)
@@ -66,14 +64,17 @@ const io = new SocketIOServer(server, {
 
     const channel = await Channel.findById(channelId).populate("members");
 
-    const finalData = { ...messageData._doc, channelId };
-
-    channel.members.forEach((member) => {
-      const socketId = userSocketMap.get(member._id.toString());
-      if (socketId) {
-        io.to(socketId).emit("recieve-channel-message", finalData);
-      }
-    });
+    if (channel && channel.members) {
+      channel.members.forEach((member) => {
+        const socketId = userSocketMap.get(member._id.toString());
+        if (socketId) {
+          io.to(socketId).emit("recieve-channel-message", {
+            ...messageData._doc,
+            channelId,
+          });
+        }
+      });
+    }
   };
 
   io.on("connection", (socket) => {
@@ -81,7 +82,7 @@ const io = new SocketIOServer(server, {
 
     if (userId) {
       userSocketMap.set(userId, socket.id);
-      console.log(`User connected: ${userId}`);
+      console.log("User connected:", userId);
     }
 
     socket.on("sendMessage", sendMessage);
@@ -89,13 +90,13 @@ const io = new SocketIOServer(server, {
     socket.on("add-channel-notify", addChannelNotify);
 
     socket.on("disconnect", () => {
-      console.log("Disconnected:", socket.id);
       for (const [key, value] of userSocketMap.entries()) {
         if (value === socket.id) {
           userSocketMap.delete(key);
           break;
         }
       }
+      console.log("User disconnected:", socket.id);
     });
   });
 };
