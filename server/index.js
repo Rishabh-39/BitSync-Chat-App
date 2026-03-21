@@ -18,7 +18,7 @@ const databaseURL = process.env.DATABASE_URL;
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps, curl)
+      
       if (!origin) return callback(null, true);
 
       if (
