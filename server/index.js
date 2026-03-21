@@ -12,12 +12,12 @@ import channelRoutes from "./routes/ChannelRoutes.js";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 5000;
 const databaseURL = process.env.DATABASE_URL;
 
 app.use(
   cors({
-    origin: [process.env.ORIGIN],
+    origin: process.env.ORIGIN,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })
@@ -36,8 +36,9 @@ app.use("/api/channel", channelRoutes);
 
 
 mongoose
-  .connect(databaseURL)
+  .connect(process.env.DATABASE_URL)
   .then(() => {
+<<<<<<< HEAD
     console.log("DB Connection Successful");
 
     const server = app.listen(port, () => {
@@ -45,7 +46,16 @@ mongoose
     });
 
     setupSocket(server);
+=======
+    console.log("DB Connected");
+>>>>>>> 8f8edf6 (frontend connected to backend)
   })
   .catch((err) => {
-    console.log(err.message);
+    console.log("DB Error:", err.message);
   });
+
+const server = app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+
+setupSocket(server);
