@@ -17,19 +17,11 @@ const databaseURL = process.env.DATABASE_URL;
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      
-      if (!origin) return callback(null, true);
-
-      if (
-        origin.includes("vercel.app") ||
-        origin === process.env.ORIGIN
-      ) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("CORS not allowed"));
-      }
-    },
+    origin: [
+      "https://bit-sync-chat-app.vercel.app",
+      "https://bit-sync-chat-app-git-main-rishabh-39s-projects.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })
 );

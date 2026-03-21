@@ -2,14 +2,16 @@ import { Server as SocketIOServer } from "socket.io";
 import Message from "./model/MessagesModel.js";
 import Channel from "./model/ChannelModel.js";
 
-const setupSocket = (server) => {
-  const io = new SocketIOServer(server, {
-    cors: {
-      origin: process.env.ORIGIN,
-      methods: ["GET", "POST"],
-      credentials: true,
-    },
-  });
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: [
+      "https://bit-sync-chat-app.vercel.app",
+      "https://bit-sync-chat-app-git-main-rishabh-39s-projects.vercel.app"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
   const userSocketMap = new Map();
 
