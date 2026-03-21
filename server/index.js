@@ -38,7 +38,7 @@ app.use("/api/channel", channelRoutes);
 mongoose
   .connect(databaseURL)
   .then(() => {
-    console.log("DB Connection Successful ✅");
+    console.log("DB Connection Successful");
 
     const server = app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
