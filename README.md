@@ -105,9 +105,9 @@ That whole process takes **less than 100ms.**
 
 | What | Where |
 |---|---|
-| Frontend | [Vercel](https://bit-sync-chat-app.vercel.app) |
-| Backend | Render (auto-deploys when code is pushed to GitHub) |
-| Database | MongoDB Atlas (cloud, always online) |
+| Frontend | Vercel |
+| Backend | Render |
+| Database | MongoDB Atlas |
 
 ---
 
