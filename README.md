@@ -116,7 +116,7 @@ That whole process takes **less than 100ms.**
 <div align="center">
 
 **Rishabh Tomar**
-B.Tech Electronics Engineering
+ | B.Tech Electronics Engineering
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/rishabh-tomar-8a7885243/)
 [![Email](https://img.shields.io/badge/Email-Say%20Hi-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:rishabhtomar.in@gmail.com)
