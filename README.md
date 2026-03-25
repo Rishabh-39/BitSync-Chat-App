@@ -57,19 +57,8 @@ https://bit-sync-chat-app.vercel.app
 - Managing frontend state and UI in React  
 - Connecting frontend and backend in a full-stack project  
 
----
+---------------------------------------------------------------------------------------------------------------------------
 
-## 📦 Run Locally
-
-```bash
-# Clone the repo
-git clone https://github.com/Rishabh-39/BitSync-Chat-App.git
-
-# Go to project folder
-cd BitSync-Chat-App
-
-# Install dependencies
-npm install
 
 # Run frontend
 npm run dev
