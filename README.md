@@ -4,7 +4,7 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo?style=for-the-badge)](https://bit-sync-chat-app.vercel.app)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-667eea?style=for-the-badge)](https://bit-sync-chat-app.vercel.app)
 [![GitHub](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=for-the-badge&logo=github)](https://github.com/Rishabh-39/BitSync-Chat-App)
 
 <br/>
