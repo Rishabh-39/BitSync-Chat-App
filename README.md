@@ -6,7 +6,6 @@
 
 [![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Try%20it%20Now-667eea?style=for-the-badge)](https://bit-sync-chat-app.vercel.app)
 [![GitHub](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=for-the-badge&logo=github)](https://github.com/Rishabh-39/BitSync-Chat-App)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 <br/>
 
@@ -102,76 +101,6 @@ That whole process takes **less than 100ms.**
 
 ---
 
-## 🚀 Run it on your own machine
-
-### What you need first
-- Node.js (v18 or above)
-- A MongoDB Atlas account (free tier works fine)
-- npm
-
-### Step 1 — Download the code
-```bash
-git clone https://github.com/Rishabh-39/BitSync-Chat-App.git
-cd BitSync-Chat-App
-```
-
-### Step 2 — Set up the backend
-```bash
-cd server
-npm install
-```
-
-Make a file called `.env` inside the `/server` folder and add this:
-```env
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=any_secret_word_you_choose
-CLIENT_URL=http://localhost:3000
-```
-
-Start the backend:
-```bash
-npm run dev
-```
-
-### Step 3 — Set up the frontend
-```bash
-cd client
-npm install
-```
-
-Make a `.env` file inside `/client`:
-```env
-REACT_APP_API_URL=http://localhost:5000
-REACT_APP_SOCKET_URL=http://localhost:5000
-```
-
-Start the frontend:
-```bash
-npm start
-```
-
-### Step 4 — Open in your browser
-```
-http://localhost:3000
-```
-
----
-
-## 🔌 API Routes (quick overview)
-
-| Method | Route | What it does |
-|--------|-------|--------------|
-| `POST` | `/api/auth/register` | Create a new account |
-| `POST` | `/api/auth/login` | Log in and get a token |
-| `GET` | `/api/users` | Get all users |
-| `GET` | `/api/messages/:channelId` | Load messages for a chat |
-| `POST` | `/api/messages` | Send a message |
-| `POST` | `/api/channels` | Create a group chat |
-| `POST` | `/api/upload` | Upload a file or image |
-
----
-
 ## 🌐 Where it's hosted
 
 | What | Where |
@@ -179,12 +108,6 @@ http://localhost:3000
 | Frontend | [Vercel](https://bit-sync-chat-app.vercel.app) |
 | Backend | Render (auto-deploys when code is pushed to GitHub) |
 | Database | MongoDB Atlas (cloud, always online) |
-
----
-
-## 📸 Screenshots
-
-> _Drop your app screenshots here — login screen, chat window, group chat, file sharing_
 
 ---
 
@@ -196,7 +119,6 @@ http://localhost:3000
 B.Tech Electronics Engineering — RGIPT
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/rishabh-tomar-8a7885243/)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-181717?style=for-the-badge&logo=github)](https://github.com/Rishabh-39)
 [![Email](https://img.shields.io/badge/Email-Say%20Hi-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:rishabhtomar.in@gmail.com)
 
 </div>
