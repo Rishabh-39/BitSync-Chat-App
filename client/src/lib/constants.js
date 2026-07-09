@@ -1,7 +1,7 @@
-// Use empty string for development (proxy handles it)
-export const HOST = "";
+// Use environment variables for API URLs
+export const HOST = import.meta.env.VITE_SERVER_URL || "";
 
-export const SOCKET_HOST = "https://bitsync-backend.onrender.com";
+export const SOCKET_HOST = import.meta.env.VITE_SOCKET_URL || "https://bitsync-backend.onrender.com";
 
 export const AUTH_ROUTES = "/api/auth";
 export const LOGIN_ROUTE = `${AUTH_ROUTES}/login`;

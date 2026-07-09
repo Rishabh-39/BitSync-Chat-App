@@ -1,7 +1,8 @@
 import axios from "axios";
+import { HOST } from "./constants";
 
 const apiClient = axios.create({
-  baseURL: "",
+  baseURL: HOST,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
