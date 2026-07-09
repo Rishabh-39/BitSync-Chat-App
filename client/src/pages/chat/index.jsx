@@ -1,5 +1,3 @@
-// import React from "react";
-
 import { useEffect } from "react";
 import ChatContainer from "./components/chat-container";
 import ContactsContainer from "./components/contacts-container";

@@ -6,7 +6,12 @@ import { io } from "socket.io-client";
 const SocketContext = createContext(null);
 
 export const useSocket = () => {
-  return useContext(SocketContext);
+  const context = useContext(SocketContext);
+  if (!context) {
+    console.warn("useSocket must be used within a SocketProvider");
+    return null;
+  }
+  return context;
 };
 
 export const SocketProvider = ({ children }) => {
@@ -84,8 +89,9 @@ export const SocketProvider = ({ children }) => {
     }
   }, [userInfo]);
 
+  // Return socket.current instead of socket (the ref)
   return (
-    <SocketContext.Provider value={socket}>
+    <SocketContext.Provider value={socket.current}>
       {children}
     </SocketContext.Provider>
   );
