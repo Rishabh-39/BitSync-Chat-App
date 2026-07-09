@@ -1,13 +1,13 @@
 import { useAppStore } from "@/store";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";  
 import apiClient from "@/lib/api-client";
 import {
   ADD_PROFILE_IMAGE_ROUTE,
   HOST,
   REMOVE_PROFILE_IMAGE_ROUTE,
-  UPDATE_PROFLE_ROUTE,
+  UPDATE_PROFILE_ROUTE,  // Fixed: Changed from UPDATE_PROFLE_ROUTE to UPDATE_PROFILE_ROUTE
 } from "@/lib/constants";
 import { useState, useRef, useEffect } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
@@ -53,7 +53,7 @@ const Profile = () => {
     if (validateProfile()) {
       try {
         const response = await apiClient.post(
-          UPDATE_PROFLE_ROUTE,
+          UPDATE_PROFILE_ROUTE,  // Fixed: Changed from UPDATE_PROFLE_ROUTE to UPDATE_PROFILE_ROUTE
           {
             firstName,
             lastName,

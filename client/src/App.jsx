@@ -3,8 +3,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
-} from "react-router-dom";
+  Navigate,} from "react-router-dom";
 import Profile from "@/pages/profile";
 import Chat from "@/pages/chat";
 import Auth from "@/pages/auth";

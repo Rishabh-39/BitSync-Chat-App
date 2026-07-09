@@ -16,15 +16,20 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (userInfo) {
       socket.current = io(SOCKET_HOST, {
+        transports: ["websocket"],
         withCredentials: true,
         query: { userId: userInfo.id },
       });
+
       socket.current.on("connect", () => {
-        console.log("Connected to socket server");
+        console.log("Connected:", socket.current.id);
+      });
+
+      socket.current.on("connect_error", (err) => {
+        console.log("Socket Error:", err.message);
       });
 
       const handleReceiveMessage = (message) => {
-        // Access the latest state values
         const {
           selectedChatData: currentChatData,
           selectedChatType: currentChatType,
@@ -65,17 +70,22 @@ export const SocketProvider = ({ children }) => {
       };
 
       socket.current.on("receiveMessage", handleReceiveMessage);
-      socket.current.on("recieve-channel-message", handleReceiveChannelMessage);
+      socket.current.on(
+        "recieve-channel-message",
+        handleReceiveChannelMessage
+      );
       socket.current.on("new-channel-added", addNewChannel);
 
       return () => {
-        socket.current.disconnect();
+        if (socket.current) {
+          socket.current.disconnect();
+        }
       };
     }
   }, [userInfo]);
 
   return (
-    <SocketContext.Provider value={socket.current}>
+    <SocketContext.Provider value={socket}>
       {children}
     </SocketContext.Provider>
   );
