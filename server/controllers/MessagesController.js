@@ -1,5 +1,5 @@
 import Message from "../model/MessagesModel.js";
-import { mkdirSync, renameSync } from "fs";
+import { renameSync } from "fs";
 
 export const getMessages = async (req, res, next) => {
   try {
@@ -25,22 +25,29 @@ export const getMessages = async (req, res, next) => {
 
 export const uploadFile = async (request, response, next) => {
   try {
-    if (request.file) {
-      console.log("in try if");
-      const date = Date.now();
-      let fileDir = `uploads/files/${date}`;
-      let fileName = `${fileDir}/${request.file.originalname}`;
-
-      // Create directory if it doesn't exist
-      mkdirSync(fileDir, { recursive: true });
-
-      renameSync(request.file.path, fileName);
-      return response.status(200).json({ filePath: fileName });
-    } else {
-      return response.status(404).send("File is required.");
+    console.log("Upload file request received");
+    console.log("Request file:", request.file);
+    
+    if (!request.file) {
+      console.log("No file in request");
+      return response.status(400).json({ message: "File is required." });
     }
+
+    console.log("File received:", request.file.originalname);
+    console.log("File path:", request.file.path);
+    console.log("File size:", request.file.size);
+    
+    // File is already saved by multer, just return the path
+    const fileUrl = request.file.path;
+    
+    console.log("File saved to:", fileUrl);
+    
+    return response.status(200).json({ 
+      fileUrl: fileUrl,
+      message: "File uploaded successfully" 
+    });
   } catch (error) {
-    console.log({ error });
-    return response.status(500).send("Internal Server Error.");
+    console.log("Upload error:", error);
+    return response.status(500).json({ message: "Internal Server Error: " + error.message });
   }
 };
