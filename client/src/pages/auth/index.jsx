@@ -16,6 +16,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
   const validateLogin = () => {
     if (!email.length) {
       toast.error("Email is required.");
@@ -27,6 +28,7 @@ const Auth = () => {
     }
     return true;
   };
+  
   const validateSignup = () => {
     if (!email.length) {
       toast.error("Email is required.");
@@ -42,6 +44,7 @@ const Auth = () => {
     }
     return true;
   };
+  
   const handleLogin = async () => {
     try {
       if (validateLogin()) {
@@ -60,6 +63,7 @@ const Auth = () => {
       }
     } catch (error) {
       console.log(error);
+      toast.error(error.response?.data || "Login failed");
     }
   };
 
@@ -71,16 +75,20 @@ const Auth = () => {
           {
             email,
             password,
+            firstName: "User",
+            lastName: "Name"
           },
           { withCredentials: true }
         );
         if (response.status === 201) {
           setUserInfo(response.data.user);
           navigate("/profile");
+          toast.success("Signup successful!");
         }
       }
     } catch (error) {
       console.log(error);
+      toast.error(error.response?.data || "Signup failed");
     }
   };
 
