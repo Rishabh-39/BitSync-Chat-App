@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import apiClient from "@/lib/api-client";
 import { LOGIN_ROUTE, SIGNUP_ROUTE } from "@/lib/constants";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store";
@@ -16,7 +16,14 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Clear any existing tokens when on auth page
+    localStorage.removeItem('token');
+    setUserInfo(null);
+  }, [setUserInfo]);
+
   const validateLogin = () => {
     if (!email.length) {
       toast.error("Email is required.");
@@ -48,28 +55,40 @@ const Auth = () => {
   const handleLogin = async () => {
     try {
       if (validateLogin()) {
+        setIsLoading(true);
         const response = await apiClient.post(
           LOGIN_ROUTE,
           { email, password },
           { withCredentials: true }
         );
-        if (response.data.user.id) {
+        if (response.data && response.data.user && response.data.user.id) {
+          // Save token to localStorage
+          if (response.data.token) {
+            localStorage.setItem('token', response.data.token);
+          }
           setUserInfo(response.data.user);
-          if (response.data.user.profileSetup) navigate("/chat");
-          else navigate("/profile");
+          toast.success("Login successful!");
+          if (response.data.user.profileSetup) {
+            navigate("/chat");
+          } else {
+            navigate("/profile");
+          }
         } else {
-          console.log("error");
+          toast.error("Invalid response from server");
         }
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.response?.data || "Login failed");
+      console.error("Login error:", error);
+      toast.error(error.response?.data?.message || "Login failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSignup = async () => {
     try {
       if (validateSignup()) {
+        setIsLoading(true);
         const response = await apiClient.post(
           SIGNUP_ROUTE,
           {
@@ -80,15 +99,23 @@ const Auth = () => {
           },
           { withCredentials: true }
         );
-        if (response.status === 201) {
+        if (response.status === 201 && response.data && response.data.user) {
+          // Save token to localStorage
+          if (response.data.token) {
+            localStorage.setItem('token', response.data.token);
+          }
           setUserInfo(response.data.user);
-          navigate("/profile");
           toast.success("Signup successful!");
+          navigate("/profile");
+        } else {
+          toast.error("Invalid response from server");
         }
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.response?.data || "Signup failed");
+      console.error("Signup error:", error);
+      toast.error(error.response?.data?.message || "Signup failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -136,8 +163,12 @@ const Auth = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <Button className="rounded-full p-6" onClick={handleLogin}>
-                  Login
+                <Button 
+                  className="rounded-full p-6" 
+                  onClick={handleLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Loading..." : "Login"}
                 </Button>
               </TabsContent>
               <TabsContent value="signup" className="flex flex-col gap-5 ">
@@ -162,8 +193,12 @@ const Auth = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
-                <Button className="rounded-full p-6" onClick={handleSignup}>
-                  Signup
+                <Button 
+                  className="rounded-full p-6" 
+                  onClick={handleSignup}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Loading..." : "Signup"}
                 </Button>
               </TabsContent>
             </Tabs>
@@ -172,9 +207,6 @@ const Auth = () => {
         <div className="hidden xl:flex justify-center items-center">
           <img src={Background} className="h-[450px] rounded-xl " />
         </div>
-
-        {/* Login Signup Component */}
-        {/* Branding */}
       </div>
     </div>
   );

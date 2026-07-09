@@ -13,6 +13,8 @@ import { useEffect, useRef, useState } from "react";
 import { IoMdArrowRoundDown } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
 import { MdFolderZip } from "react-icons/md";
+import { toast } from "sonner";
+import { useSocket } from "@/contexts/SocketContext";
 
 const MessageContainer = () => {
   const [showImage, setShowImage] = useState(false);
@@ -27,6 +29,7 @@ const MessageContainer = () => {
     setIsDownloading,
   } = useAppStore();
   const messageEndRef = useRef(null);
+  const socket = useSocket();
 
   useEffect(() => {
     const getMessages = async () => {
@@ -83,14 +86,88 @@ const MessageContainer = () => {
     const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = urlBlob;
-    link.setAttribute("download", url.split("/").pop()); // Optional: Specify a file name for the download
+    link.setAttribute("download", url.split("/").pop());
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.URL.revokeObjectURL(urlBlob); // Clean up the URL object
+    window.URL.revokeObjectURL(urlBlob);
     setIsDownloading(false);
     setDownloadProgress(0);
   };
+
+  const handleAttachmentChange = async (event) => {
+  try {
+    const file = event.target.files[0];
+    if (!file) {
+      toast.error("No file selected");
+      return;
+    }
+
+    console.log("File selected:", file.name, file.type, file.size);
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Log FormData entries
+    console.log("FormData entries:");
+    for (let pair of formData.entries()) {
+      if (pair[1] instanceof File) {
+        console.log(`  ${pair[0]}: File - ${pair[1].name} (${pair[1].type}, ${pair[1].size} bytes)`);
+      } else {
+        console.log(`  ${pair[0]}: ${pair[1]}`);
+      }
+    }
+
+    const response = await apiClient.post(
+      "/api/messages/upload-file",
+      formData,
+      {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("Upload response:", response);
+
+    if (response.status === 200 && response.data) {
+      const attachment = response.data;
+      
+      if (socket) {
+        if (selectedChatType === "contact") {
+          socket.emit("sendMessage", {
+            sender: userInfo.id,
+            content: attachment.fileUrl,
+            recipient: selectedChatData._id,
+            messageType: MESSAGE_TYPES.FILE,
+            fileUrl: attachment.fileUrl,
+          });
+        } else if (selectedChatType === "channel") {
+          socket.emit("send-channel-message", {
+            sender: userInfo.id,
+            content: attachment.fileUrl,
+            messageType: MESSAGE_TYPES.FILE,
+            fileUrl: attachment.fileUrl,
+            channelId: selectedChatData._id,
+          });
+        }
+        toast.success("File uploaded successfully");
+        // Clear the input
+        event.target.value = null;
+      } else {
+        toast.error("Socket not connected");
+      }
+    }
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    console.error("Error response:", error.response);
+    toast.error(error.response?.data?.message || "Failed to upload file");
+    // Clear the input
+    event.target.value = null;
+  }
+};
 
   const renderMessages = () => {
     let lastDate = null;

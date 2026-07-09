@@ -3,7 +3,8 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,} from "react-router-dom";
+  Navigate,
+} from "react-router-dom";
 import Profile from "@/pages/profile";
 import Chat from "@/pages/chat";
 import Auth from "@/pages/auth";
@@ -30,16 +31,28 @@ function App() {
   useEffect(() => {
     const getUserData = async () => {
       try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
         const response = await apiClient.get(GET_USERINFO_ROUTE, {
           withCredentials: true,
         });
-        if (response.status === 200 && response.data.id) {
+        
+        if (response.status === 200 && response.data && response.data.user) {
+          setUserInfo(response.data.user);
+        } else if (response.status === 200 && response.data && response.data.id) {
           setUserInfo(response.data);
         } else {
-          setUserInfo(undefined);
+          setUserInfo(null);
+          localStorage.removeItem('token');
         }
       } catch (error) {
-        setUserInfo(undefined);
+        console.error("Get user info error:", error);
+        setUserInfo(null);
+        localStorage.removeItem('token');
       } finally {
         setLoading(false);
       }
@@ -53,7 +66,11 @@ function App() {
   }, [userInfo, setUserInfo]);
 
   if (loading) {
-    return <div>Loading...</div>; // Show a loading indicator while fetching user data
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-[#1b1c24]">
+        <div className="text-white text-2xl">Loading...</div>
+      </div>
+    );
   }
 
   return (
