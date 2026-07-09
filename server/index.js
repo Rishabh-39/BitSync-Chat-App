@@ -18,13 +18,25 @@ const databaseURL = process.env.DATABASE_URL;
 app.use(
   cors({
     origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
       "https://bit-sync-chat-app.vercel.app",
       "https://bit-sync-chat-app-git-main-rishabh-39s-projects.vercel.app"
     ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "Set-Cookie", "Accept"],
   })
 );
+
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Set-Cookie, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 app.use("/uploads/profiles", express.static("uploads/profiles"));
 app.use("/uploads/files", express.static("uploads/files"));
@@ -37,6 +49,10 @@ app.use("/api/contacts", contactsRoutes);
 app.use("/api/messages", messagesRoutes);
 app.use("/api/channel", channelRoutes);
 
+// Add a test route
+app.get("/api/test", (req, res) => {
+  res.json({ message: "API is working!" });
+});
 
 mongoose
   .connect(process.env.DATABASE_URL)
