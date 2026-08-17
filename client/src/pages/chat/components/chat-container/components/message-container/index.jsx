@@ -33,25 +33,33 @@ const MessageContainer = () => {
 
   useEffect(() => {
     const getMessages = async () => {
-      const response = await apiClient.post(
-        FETCH_ALL_MESSAGES_ROUTE,
-        {
-          id: selectedChatData._id,
-        },
-        { withCredentials: true }
-      );
+      try {
+        const response = await apiClient.post(
+          FETCH_ALL_MESSAGES_ROUTE,
+          {
+            id: selectedChatData._id,
+          },
+          { withCredentials: true }
+        );
 
-      if (response.data.messages) {
-        setSelectedChatMessages(response.data.messages);
+        if (response.data.messages) {
+          setSelectedChatMessages(response.data.messages);
+        }
+      } catch (error) {
+        console.error("Error fetching messages:", error);
       }
     };
     const getChannelMessages = async () => {
-      const response = await apiClient.get(
-        `${GET_CHANNEL_MESSAGES}/${selectedChatData._id}`,
-        { withCredentials: true }
-      );
-      if (response.data.messages) {
-        setSelectedChatMessages(response.data.messages);
+      try {
+        const response = await apiClient.get(
+          `${GET_CHANNEL_MESSAGES}/${selectedChatData._id}`,
+          { withCredentials: true }
+        );
+        if (response.data.messages) {
+          setSelectedChatMessages(response.data.messages);
+        }
+      } catch (error) {
+        console.error("Error fetching channel messages:", error);
       }
     };
     if (selectedChatData._id) {
@@ -60,6 +68,50 @@ const MessageContainer = () => {
     }
   }, [selectedChatData, selectedChatType, setSelectedChatMessages]);
 
+  // Listen for socket messages
+  useEffect(() => {
+    if (socket) {
+      const handleNewMessage = (message) => {
+        console.log("New message received via socket:", message);
+        
+        // Check if this message belongs to the current chat
+        if (selectedChatData) {
+          if (selectedChatType === "contact") {
+            if (message.sender?._id === selectedChatData._id || 
+                message.recipient?._id === selectedChatData._id) {
+              setSelectedChatMessages(prev => {
+                // Check if message already exists
+                const exists = prev.some(msg => msg._id === message._id);
+                if (!exists) {
+                  return [...prev, message];
+                }
+                return prev;
+              });
+            }
+          } else if (selectedChatType === "channel") {
+            if (message.channelId === selectedChatData._id) {
+              setSelectedChatMessages(prev => {
+                const exists = prev.some(msg => msg._id === message._id);
+                if (!exists) {
+                  return [...prev, message];
+                }
+                return prev;
+              });
+            }
+          }
+        }
+      };
+
+      socket.on("receiveMessage", handleNewMessage);
+      socket.on("recieve-channel-message", handleNewMessage);
+
+      return () => {
+        socket.off("receiveMessage", handleNewMessage);
+        socket.off("recieve-channel-message", handleNewMessage);
+      };
+    }
+  }, [socket, selectedChatData, selectedChatType, setSelectedChatMessages]);
+
   useEffect(() => {
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -67,107 +119,141 @@ const MessageContainer = () => {
   }, [selectedChatMessages]);
 
   const checkIfImage = (filePath) => {
+    if (!filePath) return false;
     const imageRegex =
       /\.(jpg|jpeg|png|gif|bmp|tiff|tif|webp|svg|ico|heic|heif)$/i;
     return imageRegex.test(filePath);
   };
 
+  const getCleanFilePath = (filePath) => {
+    if (!filePath) return '';
+    // Fix incorrect paths: replace "file/s/" with "files/"
+    let cleanPath = filePath.replace('uploads/file/s/', 'uploads/files/');
+    // Remove any double slashes
+    cleanPath = cleanPath.replace(/\/\//g, '/');
+    return cleanPath;
+  };
+
   const downloadFile = async (url) => {
-    setIsDownloading(true);
-    setDownloadProgress(0);
-    const response = await apiClient.get(`${HOST}/${url}`, {
-      responseType: "blob",
-      onDownloadProgress: (progressEvent) => {
-        const { loaded, total } = progressEvent;
-        const percentCompleted = Math.round((loaded * 100) / total);
-        setDownloadProgress(percentCompleted);
-      },
-    });
-    const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
-    link.href = urlBlob;
-    link.setAttribute("download", url.split("/").pop());
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(urlBlob);
-    setIsDownloading(false);
-    setDownloadProgress(0);
+    try {
+      setIsDownloading(true);
+      setDownloadProgress(0);
+      const cleanUrl = getCleanFilePath(url);
+      const response = await apiClient.get(`${HOST}/${cleanUrl}`, {
+        responseType: "blob",
+        onDownloadProgress: (progressEvent) => {
+          const { loaded, total } = progressEvent;
+          const percentCompleted = Math.round((loaded * 100) / total);
+          setDownloadProgress(percentCompleted);
+        },
+      });
+      const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = urlBlob;
+      link.setAttribute("download", url.split("/").pop());
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(urlBlob);
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download file");
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
   };
 
   const handleAttachmentChange = async (event) => {
-  try {
-    const file = event.target.files[0];
-    if (!file) {
-      toast.error("No file selected");
-      return;
-    }
-
-    console.log("File selected:", file.name, file.type, file.size);
-
-    // Create FormData
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // Log FormData entries
-    console.log("FormData entries:");
-    for (let pair of formData.entries()) {
-      if (pair[1] instanceof File) {
-        console.log(`  ${pair[0]}: File - ${pair[1].name} (${pair[1].type}, ${pair[1].size} bytes)`);
-      } else {
-        console.log(`  ${pair[0]}: ${pair[1]}`);
+    try {
+      const file = event.target.files[0];
+      if (!file) {
+        toast.error("No file selected");
+        return;
       }
-    }
 
-    const response = await apiClient.post(
-      "/api/messages/upload-file",
-      formData,
-      {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+      console.log("File selected:", file.name, file.type, file.size);
 
-    console.log("Upload response:", response);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    if (response.status === 200 && response.data) {
-      const attachment = response.data;
-      
-      if (socket) {
-        if (selectedChatType === "contact") {
-          socket.emit("sendMessage", {
-            sender: userInfo.id,
-            content: attachment.fileUrl,
-            recipient: selectedChatData._id,
-            messageType: MESSAGE_TYPES.FILE,
-            fileUrl: attachment.fileUrl,
-          });
-        } else if (selectedChatType === "channel") {
-          socket.emit("send-channel-message", {
-            sender: userInfo.id,
-            content: attachment.fileUrl,
-            messageType: MESSAGE_TYPES.FILE,
-            fileUrl: attachment.fileUrl,
-            channelId: selectedChatData._id,
-          });
+      const response = await apiClient.post(
+        "/api/messages/upload-file",
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         }
-        toast.success("File uploaded successfully");
-        // Clear the input
+      );
+
+      console.log("Upload response:", response.data);
+
+      if (response.status === 200 && response.data) {
+        const attachment = response.data;
+        
+        // Prepare message data
+        const messageData = {
+          sender: userInfo.id,
+          content: attachment.fileUrl,
+          messageType: MESSAGE_TYPES.FILE,
+          fileUrl: attachment.fileUrl,
+          timestamp: new Date(),
+        };
+
+        // Add to local state immediately
+        const newMessage = {
+          ...messageData,
+          _id: Date.now().toString(),
+          sender: { 
+            _id: userInfo.id, 
+            firstName: userInfo.firstName, 
+            lastName: userInfo.lastName, 
+            image: userInfo.image, 
+            color: userInfo.color 
+          },
+        };
+        
+        if (selectedChatType === "contact") {
+          newMessage.recipient = { _id: selectedChatData._id };
+          messageData.recipient = selectedChatData._id;
+        } else if (selectedChatType === "channel") {
+          newMessage.channelId = selectedChatData._id;
+          messageData.channelId = selectedChatData._id;
+        }
+        
+        // Add message to chat immediately
+        setSelectedChatMessages(prev => [...prev, newMessage]);
+        
+        // Send via socket if connected
+        if (socket && socket.connected) {
+          if (selectedChatType === "contact") {
+            socket.emit("sendMessage", messageData);
+          } else if (selectedChatType === "channel") {
+            socket.emit("send-channel-message", messageData);
+          }
+          toast.success("File uploaded successfully");
+        } else {
+          // If socket not connected, try to send via API
+          try {
+            await apiClient.post("/api/messages/send", messageData);
+            toast.success("File uploaded successfully");
+          } catch (apiError) {
+            console.error("API send error:", apiError);
+            toast.warning("File uploaded but not sent. It will sync when you reconnect.");
+          }
+        }
+        
         event.target.value = null;
-      } else {
-        toast.error("Socket not connected");
       }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error(error.response?.data?.message || "Failed to upload file");
+      event.target.value = null;
     }
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    console.error("Error response:", error.response);
-    toast.error(error.response?.data?.message || "Failed to upload file");
-    // Clear the input
-    event.target.value = null;
-  }
-};
+  };
 
   const renderMessages = () => {
     let lastDate = null;
@@ -208,7 +294,7 @@ const MessageContainer = () => {
             {message.content}
           </div>
         )}
-        {message.messageType === MESSAGE_TYPES.FILE && (
+        {message.messageType === MESSAGE_TYPES.FILE && message.fileUrl && (
           <div
             className={`${
               message.sender !== selectedChatData._id
@@ -225,10 +311,24 @@ const MessageContainer = () => {
                 }}
               >
                 <img
-                  src={`${HOST}/${message.fileUrl}`}
+                  src={`${HOST}/${getCleanFilePath(message.fileUrl)}`}
                   alt=""
                   height={300}
                   width={300}
+                  onError={(e) => {
+                    console.error("Image failed to load:", message.fileUrl);
+                    e.target.style.display = 'none';
+                    // Show fallback
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <div class="flex items-center justify-center gap-5 p-4">
+                          <span class="text-white/80 text-3xl bg-black/20 rounded-full p-3">📷</span>
+                          <span class="text-white/60">Image unavailable</span>
+                        </div>
+                      `;
+                    }
+                  }}
                 />
               </div>
             ) : (
@@ -273,7 +373,7 @@ const MessageContainer = () => {
             {message.content}
           </div>
         )}
-        {message.messageType === MESSAGE_TYPES.FILE && (
+        {message.messageType === MESSAGE_TYPES.FILE && message.fileUrl && (
           <div
             className={`${
               message.sender._id === userInfo.id
@@ -290,10 +390,23 @@ const MessageContainer = () => {
                 }}
               >
                 <img
-                  src={`${HOST}/${message.fileUrl}`}
+                  src={`${HOST}/${getCleanFilePath(message.fileUrl)}`}
                   alt=""
                   height={300}
                   width={300}
+                  onError={(e) => {
+                    console.error("Image failed to load:", message.fileUrl);
+                    e.target.style.display = 'none';
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <div class="flex items-center justify-center gap-5 p-4">
+                          <span class="text-white/80 text-3xl bg-black/20 rounded-full p-3">📷</span>
+                          <span class="text-white/60">Image unavailable</span>
+                        </div>
+                      `;
+                    }
+                  }}
                 />
               </div>
             ) : (
@@ -327,10 +440,10 @@ const MessageContainer = () => {
                   message.sender.color
                 )} items-center justify-center rounded-full`}
               >
-                {message.sender.firstName.split("").shift()}
+                {message.sender.firstName ? message.sender.firstName.split("").shift() : "U"}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm text-white/60">{`${message.sender.firstName} ${message.sender.lastName}`}</span>
+            <span className="text-sm text-white/60">{`${message.sender.firstName || "User"} ${message.sender.lastName || ""}`}</span>
 
             <div className="text-xs text-white/60">
               {moment(message.timestamp).format("LT")}
@@ -353,9 +466,13 @@ const MessageContainer = () => {
         <div className="fixed z-[1000] top-0 left-0 h-[100vh] w-[100vw] flex items-center justify-center backdrop-blur-lg flex-col">
           <div>
             <img
-              src={`${HOST}/${imageURL}`}
+              src={`${HOST}/${getCleanFilePath(imageURL)}`}
               className="h-[80vh] w-full bg-cover"
               alt=""
+              onError={(e) => {
+                e.target.src = '';
+                toast.error('Image failed to load');
+              }}
             />
           </div>
           <div className="flex gap-5 fixed top-0 mt-5">

@@ -1,6 +1,7 @@
-// Use environment variables for API URLs
+// Use environment variable for API URL
 export const HOST = import.meta.env.VITE_SERVER_URL || "";
 
+// For socket, use the same host but with proper protocol
 export const SOCKET_HOST = import.meta.env.VITE_SOCKET_URL || "https://bitsync-backend.onrender.com";
 
 export const AUTH_ROUTES = "/api/auth";

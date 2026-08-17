@@ -1,5 +1,5 @@
 import Message from "../model/MessagesModel.js";
-import { renameSync } from "fs";
+import path from "path";
 
 export const getMessages = async (req, res, next) => {
   try {
@@ -26,7 +26,6 @@ export const getMessages = async (req, res, next) => {
 export const uploadFile = async (request, response, next) => {
   try {
     console.log("Upload file request received");
-    console.log("Request file:", request.file);
     
     if (!request.file) {
       console.log("No file in request");
@@ -35,12 +34,14 @@ export const uploadFile = async (request, response, next) => {
 
     console.log("File received:", request.file.originalname);
     console.log("File path:", request.file.path);
-    console.log("File size:", request.file.size);
     
-    // File is already saved by multer, just return the path
-    const fileUrl = request.file.path;
+    // Get the filename from the path
+    const fileName = path.basename(request.file.path);
     
-    console.log("File saved to:", fileUrl);
+    // ✅ FIXED: Add leading slash to URL
+    const fileUrl = `/uploads/files/${fileName}`;
+    
+    console.log("File URL:", fileUrl);
     
     return response.status(200).json({ 
       fileUrl: fileUrl,

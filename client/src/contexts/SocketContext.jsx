@@ -19,19 +19,37 @@ export const SocketProvider = ({ children }) => {
   const { userInfo } = useAppStore();
 
   useEffect(() => {
-    if (userInfo) {
+    if (userInfo && userInfo.id) {
+      // Use polling as fallback if websocket fails
       socket.current = io(SOCKET_HOST, {
-        transports: ["websocket"],
+        transports: ["websocket", "polling"],
         withCredentials: true,
         query: { userId: userInfo.id },
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 10000,
       });
 
       socket.current.on("connect", () => {
-        console.log("Connected:", socket.current.id);
+        console.log("Socket connected:", socket.current.id);
       });
 
       socket.current.on("connect_error", (err) => {
         console.log("Socket Error:", err.message);
+        // Try with polling only if websocket fails
+        if (err.message === "websocket error") {
+          socket.current.io.opts.transports = ["polling"];
+          socket.current.connect();
+        }
+      });
+
+      socket.current.on("disconnect", (reason) => {
+        console.log("Socket disconnected:", reason);
+      });
+
+      socket.current.on("reconnect", (attemptNumber) => {
+        console.log("Socket reconnected after", attemptNumber, "attempts");
       });
 
       const handleReceiveMessage = (message) => {
@@ -44,8 +62,8 @@ export const SocketProvider = ({ children }) => {
 
         if (
           currentChatType !== undefined &&
-          (currentChatData._id === message.sender._id ||
-            currentChatData._id === message.recipient._id)
+          (currentChatData?._id === message.sender?._id ||
+            currentChatData?._id === message.recipient?._id)
         ) {
           addMessage(message);
         }
@@ -62,7 +80,7 @@ export const SocketProvider = ({ children }) => {
 
         if (
           selectedChatType !== undefined &&
-          selectedChatData._id === message.channelId
+          selectedChatData?._id === message.channelId
         ) {
           addMessage(message);
         }
@@ -75,10 +93,7 @@ export const SocketProvider = ({ children }) => {
       };
 
       socket.current.on("receiveMessage", handleReceiveMessage);
-      socket.current.on(
-        "recieve-channel-message",
-        handleReceiveChannelMessage
-      );
+      socket.current.on("recieve-channel-message", handleReceiveChannelMessage);
       socket.current.on("new-channel-added", addNewChannel);
 
       return () => {
@@ -89,7 +104,6 @@ export const SocketProvider = ({ children }) => {
     }
   }, [userInfo]);
 
-  // Return socket.current instead of socket (the ref)
   return (
     <SocketContext.Provider value={socket.current}>
       {children}
