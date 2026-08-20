@@ -36,9 +36,9 @@ model Message {
   timestamp   DateTime @default(now())
 
   // Relations
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
-  recipient   User?    @relation("ReceivedMessages", fields: [recipientId], references: [id])
-  channel     Channel? @relation(fields: [channelId], references: [id])
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User?    @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  channel     Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
 }
 
 model Channel {
@@ -49,7 +49,7 @@ model Channel {
   updatedAt DateTime @updatedAt
 
   // Relations
-  admin     User      @relation("ChannelAdmin", fields: [adminId], references: [id])
+  admin     User      @relation("ChannelAdmin", fields: [adminId], references: [id], onDelete: Cascade)
   members   User[]    @relation("ChannelMembers")
   messages  Message[]
 }
