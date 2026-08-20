@@ -89,7 +89,7 @@ const MessageBar = () => {
               recipient: selectedChatData._id,
               messageType: MESSAGE_TYPES.FILE,
               audioUrl: undefined,
-              fileUrl: response.data.filePath,
+              fileUrl: response.data.fileUrl,
             });
           } else if (selectedChatType === "channel") {
             socket.emit("send-channel-message", {
@@ -97,7 +97,7 @@ const MessageBar = () => {
               content: undefined,
               messageType: MESSAGE_TYPES.FILE,
               audioUrl: undefined,
-              fileUrl: response.data.filePath,
+              fileUrl: response.data.fileUrl,
               channelId: selectedChatData._id,
             });
           }

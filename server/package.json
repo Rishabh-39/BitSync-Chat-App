@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "bitsync-server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.6",
@@ -20,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.4.1",
     "multer": "^1.4.5-lts.1",
+    "prisma": "^5.22.0",
     "socket.io": "^4.7.5"
   },
   "devDependencies": {

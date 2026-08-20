@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://bitsync-backend.onrender.com',
+        target: 'http://localhost:8747',
         changeOrigin: true,
         secure: false,
         ws: true,

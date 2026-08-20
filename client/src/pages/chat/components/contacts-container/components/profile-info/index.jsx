@@ -24,11 +24,16 @@ const ProfileInfo = () => {
         { withCredentials: true }
       );
       if (response.status === 200) {
+        localStorage.removeItem('token');
+        setUserInfo(null);
         navigate("/auth");
-        setUserInfo(undefined);
       }
     } catch (error) {
       console.log(error);
+      // Even if API fails, clear local state
+      localStorage.removeItem('token');
+      setUserInfo(null);
+      navigate("/auth");
     }
   };
 

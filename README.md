@@ -11,7 +11,8 @@
 ![React](https://img.shields.io/badge/React.js-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express.js-000000?style=flat-square&logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat-square&logo=socketdotio&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
@@ -22,7 +23,7 @@
 
 ## 💬 What is BitSync?
 
-BitSync is a **real-time chat app** where you can send messages to friends or groups — and they receive it instantly, no page refresh needed.
+BitSync is a **real-time chat app** where you can send messages to friends or groups — and they receive it instantly, no page refresh needed. Now powered by **PostgreSQL + Prisma** for a faster, more reliable backend.
 
 You can also **share files and images**, create group chats, and log in securely. Everything is saved so your chat history is always there when you come back.
 
@@ -50,7 +51,8 @@ You can also **share files and images**, create group chats, and log in securely
 |---|---|
 | **Frontend** | React.js, Tailwind CSS, Socket.IO Client |
 | **Backend** | Node.js, Express.js, Socket.IO |
-| **Database** | MongoDB Atlas |
+| **Database** | PostgreSQL |
+| **ORM** | Prisma |
 | **Auth** | JWT (JSON Web Tokens) |
 | **Deployed On** | Vercel (frontend) + Render (backend) |
 
@@ -63,17 +65,18 @@ BitSync-Chat-App/
 │
 ├── client/               # Everything the user sees (React)
 │   └── src/
-│       ├── components/   # Buttons, chat bubbles, input boxes, etc.
-│       ├── pages/        # Login page, Register page, Chat page
-│       ├── context/      # Shared data — socket connection, logged-in user
-│       └── utils/        # Helper functions for API calls
+│       ├── components/   # Reusable UI components (common, ui)
+│       ├── pages/        # Auth, Chat, Profile pages
+│       ├── contexts/     # Shared data — socket connection, logged-in user
+│       ├── store/        # State management
+│       └── lib/          # Helper functions and utilities
 │
 ├── server/               # Everything on the backend (Node.js)
-│   ├── controllers/      # Logic for login, messages, channels
-│   ├── models/           # Database structure (User, Message, Channel)
+│   ├── controllers/      # Logic for auth, messages, contacts, channels
+│   ├── prisma/           # Prisma schema & migrations (PostgreSQL)
 │   ├── routes/           # API URL paths
-│   ├── middleware/        # Checks if user is logged in before each request
-│   └── socket/           # Handles real-time message events
+│   ├── middlewares/      # Auth, error handling, request logging
+│   └── socket.js         # Handles real-time message events
 │
 └── README.md
 ```
@@ -93,7 +96,7 @@ The server passes it to the other person's browser
         ↓
 Their screen updates — without refreshing the page
         ↓
-The message is also saved in MongoDB so it stays there
+The message is also saved in PostgreSQL so it stays there
 ```
 
 That whole process takes **less than 100ms.**
@@ -106,7 +109,7 @@ That whole process takes **less than 100ms.**
 |---|---|
 | Frontend | Vercel |
 | Backend | Render |
-| Database | MongoDB Atlas |
+| Database | PostgreSQL |
 
 ---
 

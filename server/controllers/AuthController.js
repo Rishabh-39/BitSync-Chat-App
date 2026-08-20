@@ -1,4 +1,4 @@
-import User from "../model/UserModel.js";
+import { prisma } from "../index.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -7,7 +7,7 @@ export const signup = async (req, res) => {
     const { email, password, firstName, lastName } = req.body;
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
@@ -16,17 +16,19 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const user = await User.create({
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+      },
     });
 
     // Generate token
     const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      { userId: user.id, email: user.email },
+      process.env.JWT_KEY,
       { expiresIn: "7d" }
     );
 
@@ -41,7 +43,7 @@ export const signup = async (req, res) => {
     res.status(201).json({
       message: "User created successfully",
       user: {
-        id: user._id,
+        id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -49,7 +51,7 @@ export const signup = async (req, res) => {
         color: user.color,
         image: user.image,
       },
-      token, // Also send token in response for frontend to store
+      token,
     });
   } catch (error) {
     console.error("Signup error:", error);
@@ -62,7 +64,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -75,8 +77,8 @@ export const login = async (req, res) => {
 
     // Generate token
     const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      { userId: user.id, email: user.email },
+      process.env.JWT_KEY,
       { expiresIn: "7d" }
     );
 
@@ -90,7 +92,7 @@ export const login = async (req, res) => {
 
     res.json({
       user: {
-        id: user._id,
+        id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -98,7 +100,7 @@ export const login = async (req, res) => {
         color: user.color,
         image: user.image,
       },
-      token, // Also send token in response for frontend to store
+      token,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -108,14 +110,14 @@ export const login = async (req, res) => {
 
 export const getUserInfo = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     res.json({
       user: {
-        id: user._id,
+        id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -147,22 +149,26 @@ export const logout = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { firstName, lastName, color } = req.body;
-    const user = await User.findById(req.userId);
-
-    if (!user) {
+    
+    // Check if user exists
+    const userExists = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!userExists) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.firstName = firstName || user.firstName;
-    user.lastName = lastName || user.lastName;
-    user.color = color !== undefined ? color : user.color;
-    user.profileSetup = true;
-
-    await user.save();
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        color: color !== undefined ? color : undefined,
+        profileSetup: true,
+      },
+    });
 
     res.json({
       user: {
-        id: user._id,
+        id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -183,13 +189,17 @@ export const addProfileImage = async (req, res) => {
       return res.status(400).json({ message: "Image is required" });
     }
 
-    const user = await User.findById(req.userId);
-    if (!user) {
+    const userExists = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!userExists) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.image = req.file.path;
-    await user.save();
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        image: req.file.path,
+      },
+    });
 
     res.json({ image: user.image });
   } catch (error) {
@@ -200,13 +210,17 @@ export const addProfileImage = async (req, res) => {
 
 export const removeProfileImage = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    if (!user) {
+    const userExists = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!userExists) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.image = null;
-    await user.save();
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        image: null,
+      },
+    });
 
     res.json({ message: "Image removed successfully" });
   } catch (error) {

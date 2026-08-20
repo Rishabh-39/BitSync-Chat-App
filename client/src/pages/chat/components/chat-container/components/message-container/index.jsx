@@ -68,49 +68,7 @@ const MessageContainer = () => {
     }
   }, [selectedChatData, selectedChatType, setSelectedChatMessages]);
 
-  // Listen for socket messages
-  useEffect(() => {
-    if (socket) {
-      const handleNewMessage = (message) => {
-        console.log("New message received via socket:", message);
-        
-        // Check if this message belongs to the current chat
-        if (selectedChatData) {
-          if (selectedChatType === "contact") {
-            if (message.sender?._id === selectedChatData._id || 
-                message.recipient?._id === selectedChatData._id) {
-              setSelectedChatMessages(prev => {
-                // Check if message already exists
-                const exists = prev.some(msg => msg._id === message._id);
-                if (!exists) {
-                  return [...prev, message];
-                }
-                return prev;
-              });
-            }
-          } else if (selectedChatType === "channel") {
-            if (message.channelId === selectedChatData._id) {
-              setSelectedChatMessages(prev => {
-                const exists = prev.some(msg => msg._id === message._id);
-                if (!exists) {
-                  return [...prev, message];
-                }
-                return prev;
-              });
-            }
-          }
-        }
-      };
-
-      socket.on("receiveMessage", handleNewMessage);
-      socket.on("recieve-channel-message", handleNewMessage);
-
-      return () => {
-        socket.off("receiveMessage", handleNewMessage);
-        socket.off("recieve-channel-message", handleNewMessage);
-      };
-    }
-  }, [socket, selectedChatData, selectedChatType, setSelectedChatMessages]);
+  // Socket message handling is done in SocketContext via addMessage - no duplicate listener needed here
 
   useEffect(() => {
     if (messageEndRef.current) {
@@ -131,6 +89,8 @@ const MessageContainer = () => {
     let cleanPath = filePath.replace('uploads/file/s/', 'uploads/files/');
     // Remove any double slashes
     cleanPath = cleanPath.replace(/\/\//g, '/');
+    // Remove leading slash to avoid double slash when combined with HOST
+    cleanPath = cleanPath.replace(/^\//, '');
     return cleanPath;
   };
 
@@ -225,7 +185,7 @@ const MessageContainer = () => {
         }
         
         // Add message to chat immediately
-        setSelectedChatMessages(prev => [...prev, newMessage]);
+        setSelectedChatMessages([...selectedChatMessages, newMessage]);
         
         // Send via socket if connected
         if (socket && socket.connected) {

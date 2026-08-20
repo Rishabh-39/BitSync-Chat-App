@@ -18,11 +18,7 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    // Clear any existing tokens when on auth page
-    localStorage.removeItem('token');
-    setUserInfo(null);
-  }, [setUserInfo]);
+  // Note: Don't clear tokens here — it causes race conditions after login/signup navigation
 
   const validateLogin = () => {
     if (!email.length) {

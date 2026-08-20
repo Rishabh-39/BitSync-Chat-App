@@ -1,4 +1,4 @@
-import Message from "../model/MessagesModel.js";
+import { prisma } from "../index.js";
 import path from "path";
 
 export const getMessages = async (req, res, next) => {
@@ -9,14 +9,29 @@ export const getMessages = async (req, res, next) => {
       return res.status(400).send("Both user IDs are required.");
     }
 
-    const messages = await Message.find({
-      $or: [
-        { sender: user1, recipient: user2 },
-        { sender: user2, recipient: user1 },
-      ],
-    }).sort({ timestamp: 1 });
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: user1, recipientId: user2 },
+          { senderId: user2, recipientId: user1 },
+        ],
+      },
+      orderBy: { timestamp: "asc" },
+      // Include sender and recipient relations if the frontend expects them. 
+      // The original mongoose code just returned the documents. Mongoose .find() returns IDs for refs unless .populate() is used.
+      // Since it wasn't populated in the original mongoose code, we don't include relations here.
+    });
 
-    return res.status(200).json({ messages });
+    // The frontend might expect the ID fields to be named 'sender' and 'recipient' instead of 'senderId' and 'recipientId'.
+    // Let's map them to match the old Mongoose shape.
+    const mappedMessages = messages.map(msg => ({
+      ...msg,
+      _id: msg.id, // Mongoose id
+      sender: msg.senderId,
+      recipient: msg.recipientId,
+    }));
+
+    return res.status(200).json({ messages: mappedMessages });
   } catch (err) {
     console.log(err);
     return res.status(500).send("Internal Server Error");
@@ -35,10 +50,11 @@ export const uploadFile = async (request, response, next) => {
     console.log("File received:", request.file.originalname);
     console.log("File path:", request.file.path);
     
-    // Get the filename from the path
+    // ✅ Get just the filename from the path
     const fileName = path.basename(request.file.path);
     
-    // ✅ FIXED: Add leading slash to URL
+    // ✅ Return the URL WITHOUT the user ID subfolder
+    // Since files are saved directly in uploads/files/
     const fileUrl = `/uploads/files/${fileName}`;
     
     console.log("File URL:", fileUrl);

@@ -1,6 +1,5 @@
 import { Server as SocketIOServer } from "socket.io";
-import Message from "./model/MessagesModel.js";
-import Channel from "./model/ChannelModel.js";
+import { prisma } from "./index.js";
 
 const setupSocket = (server) => {
   const io = new SocketIOServer(server, {
@@ -25,7 +24,9 @@ const setupSocket = (server) => {
   const addChannelNotify = async (channel) => {
     if (channel && channel.members) {
       channel.members.forEach((member) => {
-        const socketId = userSocketMap.get(member.toString());
+        // Handle both Prisma arrays of objects and arrays of IDs
+        const memberId = typeof member === 'object' && member !== null && 'id' in member ? member.id : member.toString();
+        const socketId = userSocketMap.get(memberId);
         if (socketId) {
           io.to(socketId).emit("new-channel-added", channel);
         }
@@ -37,18 +38,37 @@ const setupSocket = (server) => {
     try {
       const { sender, recipient, content, messageType, fileUrl } = message;
 
-      const createdMessage = await Message.create({
-        sender,
-        recipient,
-        content,
-        messageType,
-        fileUrl: fileUrl || null,
-        timestamp: new Date(),
+      const createdMessage = await prisma.message.create({
+        data: {
+          senderId: sender,
+          recipientId: recipient,
+          content,
+          messageType,
+          fileUrl: fileUrl || null,
+        },
+        include: {
+          sender: {
+            select: { id: true, email: true, firstName: true, lastName: true, image: true, color: true }
+          },
+          recipient: {
+            select: { id: true, email: true, firstName: true, lastName: true, image: true, color: true }
+          }
+        }
       });
 
-      const messageData = await Message.findById(createdMessage._id)
-        .populate("sender", "id email firstName lastName image color")
-        .populate("recipient", "id email firstName lastName image color");
+      // Map for frontend compatibility
+      const messageData = {
+        ...createdMessage,
+        _id: createdMessage.id,
+        sender: {
+          ...createdMessage.sender,
+          _id: createdMessage.sender.id,
+        },
+        recipient: {
+          ...createdMessage.recipient,
+          _id: createdMessage.recipient.id,
+        }
+      };
 
       const senderSocket = userSocketMap.get(sender);
       const recipientSocket = userSocketMap.get(recipient);
@@ -69,31 +89,43 @@ const setupSocket = (server) => {
     try {
       const { channelId, sender, content, messageType, fileUrl } = message;
 
-      const createdMessage = await Message.create({
-        sender,
-        content,
-        messageType,
-        fileUrl: fileUrl || null,
-        timestamp: new Date(),
+      const createdMessage = await prisma.message.create({
+        data: {
+          senderId: sender,
+          channelId: channelId,
+          content,
+          messageType,
+          fileUrl: fileUrl || null,
+        },
+        include: {
+          sender: {
+            select: { id: true, email: true, firstName: true, lastName: true, image: true, color: true }
+          }
+        }
       });
 
-      const messageData = await Message.findById(createdMessage._id)
-        .populate("sender", "id email firstName lastName image color");
-
-      await Channel.findByIdAndUpdate(channelId, {
-        $push: { messages: createdMessage._id },
+      // Fetch channel members to broadcast
+      const channel = await prisma.channel.findUnique({
+        where: { id: channelId },
+        include: { members: true }
       });
-
-      const channel = await Channel.findById(channelId).populate("members");
 
       if (channel && channel.members) {
+        // Map message for frontend compatibility
+        const messageData = {
+          ...createdMessage,
+          _id: createdMessage.id,
+          channelId,
+          sender: {
+            ...createdMessage.sender,
+            _id: createdMessage.sender.id,
+          }
+        };
+
         channel.members.forEach((member) => {
-          const socketId = userSocketMap.get(member._id.toString());
+          const socketId = userSocketMap.get(member.id);
           if (socketId) {
-            io.to(socketId).emit("recieve-channel-message", {
-              ...messageData._doc,
-              channelId,
-            });
+            io.to(socketId).emit("recieve-channel-message", messageData);
           }
         });
       }

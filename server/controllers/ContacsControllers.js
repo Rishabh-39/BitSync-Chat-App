@@ -1,17 +1,15 @@
-import mongoose from "mongoose";
-import User from "../model/UserModel.js";
-import Message from "../model/MessagesModel.js";
+import { prisma } from "../index.js";
 
 export const getAllContacts = async (request, response, next) => {
   try {
-    const users = await User.find(
-      { _id: { $ne: request.userId } },
-      "firstName lastName _id"
-    );
+    const users = await prisma.user.findMany({
+      where: { id: { not: request.userId } },
+      select: { firstName: true, lastName: true, id: true },
+    });
 
     const contacts = users.map((user) => ({
       label: `${user.firstName} ${user.lastName}`,
-      value: user._id,
+      value: user.id,
     }));
 
     return response.status(200).json({ contacts });
@@ -29,22 +27,24 @@ export const searchContacts = async (request, response, next) => {
       return response.status(400).send("Search Term is required.");
     }
 
-    const sanitizedSearchTerm = searchTerm.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&"
-    );
-
-    const regex = new RegExp(sanitizedSearchTerm, "i");
-
-    const contacts = await User.find({
-      $and: [
-        { _id: { $ne: request.userId } },
-        {
-          $or: [{ firstName: regex }, { lastName: regex }, { email: regex }],
-        },
-      ],
+    const contacts = await prisma.user.findMany({
+      where: {
+        id: { not: request.userId },
+        OR: [
+          { firstName: { contains: searchTerm, mode: "insensitive" } },
+          { lastName: { contains: searchTerm, mode: "insensitive" } },
+          { email: { contains: searchTerm, mode: "insensitive" } },
+        ],
+      },
     });
-    return response.status(200).json({ contacts });
+
+    // Map id to _id to match frontend expectations
+    const mappedContacts = contacts.map(c => ({
+      ...c,
+      _id: c.id
+    }));
+
+    return response.status(200).json({ contacts: mappedContacts });
   } catch (error) {
     console.log({ error });
     return response.status(500).send("Internal Server Error.");
@@ -53,60 +53,51 @@ export const searchContacts = async (request, response, next) => {
 
 export const getContactsForList = async (req, res, next) => {
   try {
-    let { userId } = req;
-    userId = new mongoose.Types.ObjectId(userId);
+    const userId = req.userId;
 
     if (!userId) {
       return res.status(400).send("User ID is required.");
     }
-    const contacts = await Message.aggregate([
-      {
-        $match: {
-          $or: [{ sender: userId }, { recipient: userId }],
-        },
-      },
-      {
-        $sort: { timestamp: -1 },
-      },
-      {
-        $group: {
-          _id: {
-            $cond: {
-              if: { $eq: ["$sender", userId] },
-              then: "$recipient",
-              else: "$sender",
-            },
-          },
-          lastMessageTime: { $first: "$timestamp" },
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "_id",
-          foreignField: "_id",
-          as: "contactInfo",
-        },
-      },
-      {
-        $unwind: "$contactInfo",
-      },
-      {
-        $project: {
-          _id: 1,
 
-          lastMessageTime: 1,
-          email: "$contactInfo.email",
-          firstName: "$contactInfo.firstName",
-          lastName: "$contactInfo.lastName",
-          image: "$contactInfo.image",
-          color: "$contactInfo.color",
-        },
+    // Fetch all messages for this user ordered by latest first
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [{ senderId: userId }, { recipientId: userId }],
       },
-      {
-        $sort: { lastMessageTime: -1 },
+      orderBy: { timestamp: "desc" },
+      include: {
+        sender: true,
+        recipient: true,
       },
-    ]);
+    });
+
+    const contactsMap = new Map();
+
+    for (const msg of messages) {
+      // If it's a channel message, ignore it in DMs list
+      if (msg.channelId) continue;
+
+      const isSender = msg.senderId === userId;
+      const contactId = isSender ? msg.recipientId : msg.senderId;
+      
+      // Should not happen for DMs, but just in case
+      if (!contactId) continue;
+
+      if (!contactsMap.has(contactId)) {
+        const contactInfo = isSender ? msg.recipient : msg.sender;
+        contactsMap.set(contactId, {
+          _id: contactId, // Map id to _id for frontend compatibility
+          lastMessageTime: msg.timestamp,
+          email: contactInfo.email,
+          firstName: contactInfo.firstName,
+          lastName: contactInfo.lastName,
+          image: contactInfo.image,
+          color: contactInfo.color,
+        });
+      }
+    }
+
+    const contacts = Array.from(contactsMap.values());
 
     return res.status(200).json({ contacts });
   } catch (error) {

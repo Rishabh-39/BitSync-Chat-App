@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  password         String
+  firstName        String?
+  lastName         String?
+  image            String?
+  profileSetup     Boolean   @default(false)
+  color            Int?
+  
+  // Relations
+  messagesSent     Message[] @relation("SentMessages")
+  messagesReceived Message[] @relation("ReceivedMessages")
+  channelsAdmin    Channel[] @relation("ChannelAdmin")
+  channels         Channel[] @relation("ChannelMembers")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  senderId    String
+  recipientId String?
+  channelId   String?
+  messageType String   // "text", "audio", "file"
+  content     String?
+  audioUrl    String?
+  fileUrl     String?
+  timestamp   DateTime @default(now())
+
+  // Relations
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  recipient   User?    @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  channel     Channel? @relation(fields: [channelId], references: [id])
+}
+
+model Channel {
+  id        String   @id @default(uuid())
+  name      String
+  adminId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  admin     User      @relation("ChannelAdmin", fields: [adminId], references: [id])
+  members   User[]    @relation("ChannelMembers")
+  messages  Message[]
+}
