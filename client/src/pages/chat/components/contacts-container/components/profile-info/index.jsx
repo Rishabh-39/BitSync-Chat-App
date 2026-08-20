@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { getColor } from "@/lib/utils";
 
 const ProfileInfo = () => {
-  const { userInfo, setUserInfo } = useAppStore();
+  const { userInfo, setUserInfo, closeChat } = useAppStore();
   const navigate = useNavigate();
   const logout = async () => {
     try {
@@ -26,6 +26,7 @@ const ProfileInfo = () => {
       if (response.status === 200) {
         localStorage.removeItem('token');
         setUserInfo(null);
+        closeChat();
         navigate("/auth");
       }
     } catch (error) {
@@ -33,6 +34,7 @@ const ProfileInfo = () => {
       // Even if API fails, clear local state
       localStorage.removeItem('token');
       setUserInfo(null);
+      closeChat();
       navigate("/auth");
     }
   };
